@@ -12,9 +12,9 @@ services:
       MYSQL_DATABASE: "${MYSQL_DATABASE:-pkp}"
       MYSQL_USER: "${MYSQL_USER:-pkp}"
       MYSQL_PASSWORD: "${MYSQL_PASSWORD:-changeMePlease}"
-#    volumes:
-#      - ./volumes/db:/var/lib/mysql
-#      - ./volumes/logs/db:/var/log/mysql
+    volumes:
+      - ./volumes/db:/var/lib/mysql
+      - ./volumes/logs/db:/var/log/mysql
 #      - ./volumes/config/db.charset.conf:/etc/mysql/conf.d/charset.cnf
 #      - ./volumes/db-import:/docker-entrypoint-initdb.d
     networks:
@@ -23,7 +23,7 @@ services:
 
   app:
     image: ${IMAGE_SOURCE:-local}/${PKP_TOOL:-omp}:${PKP_VERSION:-3_3_0-20}
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
       args:
@@ -36,24 +36,37 @@ services:
       - .env
     container_name: "pkp_app_${COMPOSE_PROJECT_NAME:-demo}"
     hostname: "${COMPOSE_PROJECT_NAME:-demo}"
-    ports:
-      - ${HTTP_PORT:-8081}:80
-      - ${HTTPS_PORT:-443}:443
     volumes:
       # Keep host and container sync:
       - /etc/localtime:/etc/localtime
-#      - ./volumes/private:/var/www/files
-#      - ./volumes/public:/var/www/html/public
-#      - ./volumes/logs/app:/var/log/apache2
+      - ./volumes/private:/var/www/files
+      - ./volumes/public:/var/www/html/public
+      - ./volumes/logs/app:/var/log/apache2
 #      # WARNING: You can only enable file-volumes if file exists in the container.
-#      - ./volumes/config/pkp.config.inc.php:/var/www/html/config.inc.php
+      - ./volumes/config/config.inc.php:/var/www/html/config.inc.php
 #      - ./volumes/config/apache.htaccess:/var/www/html/.htaccess
-      - ./volumes/config/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
+#      - ./volumes/config/php.custom.ini:/usr/local/etc/php/conf.d/custom.ini
 
     networks:
       - inside
     depends_on:
       - db
+    restart: unless-stopped
+  proxy:
+    image: "owasp/modsecurity-crs:nginx"
+    container_name: "proxy_modsec_${COMPOSE_PROJECT_NAME:-demo}"
+    ports:
+      - "${HTTP_PORT:-8081}:80"
+    volumes:
+      # Configuración Nginx + ModSecurity (Sin CRS) + Custom (OJS / OMP) Rules
+      - ./volumes/proxy_modsec/templates/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./volumes/proxy_modsec/templates/conf.d/ojs.conf:/etc/nginx/conf.d/ojs.conf:ro
+      - ./volumes/proxy_modsec/templates/modsecurity.d/modsecurity.conf.template:/etc/nginx/templates/modsecurity.d/modsecurity.conf.template:ro
+      - ./volumes/proxy_modsec/custom_rules:/etc/modsecurity.d/custom_rules:ro
+    depends_on:
+      - app
+    networks:
+      - inside
     restart: unless-stopped
 
 networks:
