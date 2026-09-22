@@ -1,3 +1,9 @@
 .swp
 .sandbox
 older
+.env
+volumes/db/*
+volumes/private/*
+volumes/public/*
+volumes/logs/*
+volumes/plugins/*
