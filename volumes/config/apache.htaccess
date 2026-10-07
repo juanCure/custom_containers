@@ -17,3 +17,18 @@ php_flag log_errors On
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ /index.php/$1 [QSA,L]
 </IfModule>
+
+# The following settings resolve the issue with PDFviewer.js has with the mixed content
+# resulting for SSL Termination on Centro de Datos Balancer
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:X-Forwarded-Proto} =https
+    RewriteRule .* - [E=HTTPS:on]
+</IfModule>
+
+# The following is to hide PHP version
+
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
+</IfModule>
